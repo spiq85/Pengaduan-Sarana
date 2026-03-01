@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@source "../../resources/**/*.blade.php";
+@source "../../resources/**/*.js";
+@source "../../resources/**/*.vue";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+}
