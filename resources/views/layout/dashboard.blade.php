@@ -292,7 +292,7 @@
                 <span class="menu-text">Persetujuan Aspirasi</span>
             </a>
 
-            <a href="#" class="menu-item {{ Request::is('ketua/reports*') ? 'active' : '' }} opacity-50">
+            <a href="{{ route('ketua.reports.index') }}" class="menu-item {{ Request::is('ketua/reports*') ? 'active' : '' }}">
                 <i class="fas fa-chart-line"></i>
                 <span class="menu-text">Laporan Tahunan</span>
             </a>

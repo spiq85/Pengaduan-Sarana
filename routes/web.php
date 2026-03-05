@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\FeedbackController;
 use App\Http\Controllers\Ketua\ApprovalController;
+use App\Http\Controllers\Ketua\ReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Student\AuthController as StudentAuthController;
@@ -108,5 +109,9 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/aspirations/{input}/reject', [ApprovalController::class, 'reject'])->name('aspirations.reject');
             Route::post('/aspirations/{aspiration}/feedback', [FeedbackController::class, 'store'])
                 ->name('aspirations.feedback.store');
+
+            // Reports
+            Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+            Route::get('/reports/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.export-pdf');
         });
 });

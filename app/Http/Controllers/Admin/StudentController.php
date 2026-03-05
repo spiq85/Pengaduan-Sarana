@@ -45,7 +45,12 @@ class StudentController extends Controller
         return view('admin.students.edit', compact('student'));
     }
 
-    public function update(REquest $request, Student $student)
+    public function show(Student $student)
+    {
+        return view('admin.students.edit', compact('student'));
+    }
+
+    public function update(Request $request, Student $student)
     {
         $request->validate([
             'nis' => 'required|unique:students,nis,' . $student->id_student . ',id_student',

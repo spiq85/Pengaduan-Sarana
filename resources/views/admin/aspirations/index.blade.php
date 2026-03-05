@@ -77,7 +77,13 @@
                 <option value="Selesai" {{ request('progress') == 'Selesai' ? 'selected' : '' }}>Selesai</option>
             </select>
         </div>
-        <div class="col-md-3 d-flex gap-2">
+        <div class="col-md-1">
+            <select name="sort" class="form-select form-select-sm">
+                <option value="" {{ request('sort') == '' ? 'selected' : '' }}>Terbaru</option>
+                <option value="priority" {{ request('sort') == 'priority' ? 'selected' : '' }}>Prioritas</option>
+            </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
             <button type="submit" class="btn btn-primary btn-sm flex-fill">Filter</button>
             <a href="{{ route('admin.aspirations.index') }}" class="btn btn-outline-secondary btn-sm flex-fill text-white">Reset</a>
         </div>
@@ -110,7 +116,7 @@
                     <td>
                         <div class="d-flex align-items-center gap-2">
                             <div class="vote-badge rounded-3 d-flex align-items-center">
-                                <i class="fas fa-heart me-2 {{ ($item->aspiration->votes_count ?? 0) > 0 ? 'text-danger' : 'opacity-25' }}"></i>
+                                <i class="fas fa-thumbs-up me-2 {{ ($item->aspiration->votes_count ?? 0) > 0 ? 'text-primary' : 'opacity-25' }}"></i>
                                 <span>{{ $item->aspiration->votes_count ?? 0 }}</span>
                             </div>
 

@@ -366,11 +366,11 @@ const handleLogout = () => {
                                 "
                             >
                                 <i
-                                    class="fas fa-heart text-lg"
+                                    class="text-lg"
                                     :class="
                                         aspiration.user_has_voted
-                                            ? 'fas'
-                                            : 'far'
+                                            ? 'fas fa-thumbs-up'
+                                            : 'far fa-thumbs-up'
                                     "
                                 ></i>
                                 <span

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Vote extends Model
 {
-    protected $guarded = [];
+    protected $fillable = ['aspiration_id', 'student_id'];
 
     public function student()
     {

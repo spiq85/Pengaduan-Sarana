@@ -65,8 +65,6 @@ class StudentDashboardController extends Controller
             ->withExists(['votes as user_has_voted' => function ($query) use ($studentId) {
                 $query->where('student_id', $studentId);
             }])
-            // Kunci utama agar tidak duplikat saat join votes/comments
-            ->groupBy('aspirations.id_aspiration')
             ->latest()
             ->get();
 

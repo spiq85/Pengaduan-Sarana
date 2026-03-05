@@ -27,7 +27,16 @@ class InputAspirationController extends Controller
             ->with('aspiration', function ($query) {
                 $query->withCount('votes');
             })
-            ->latest()
+            ->when($request->sort === 'priority', function ($q) {
+                $q->orderByDesc(
+                    Aspirations::selectRaw('count(*)')
+                        ->from('votes')
+                        ->whereColumn('votes.id_aspiration', 'aspirations.id_aspiration')
+                        ->whereColumn('aspirations.id_input', 'input_aspirations.id_input')
+                );
+            }, function ($q) {
+                $q->latest();
+            })
             ->paginate(15)
             ->withQueryString();
 
