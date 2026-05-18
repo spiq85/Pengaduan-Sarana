@@ -16,18 +16,14 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         $adminRole = Role::where('name', 'admin')->first();
-        $ketuaRole = Role::where('name', 'ketua_yayasan')->first();
 
-        $admin = User::firstOrCreate([
-            'username' => 'syaviq ganteng',
-            'password' => Hash::make('admin123') 
-        ]);
-        $admin->assignRole($adminRole);
+        $admin = User::updateOrCreate(
+            ['username' => 'admin'],
+            ['password' => Hash::make('admin123')]
+        );
 
-        $ketua = User::firstOrCreate([
-            'username' => 'kipas',
-            'password' => Hash::make('kipas123')
-        ]);
-        $ketua->assignRole($ketuaRole);
+        if ($adminRole && !$admin->hasRole('admin')) {
+            $admin->assignRole($adminRole);
+        }
     }
 }

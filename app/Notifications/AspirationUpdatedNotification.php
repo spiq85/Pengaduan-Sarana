@@ -32,7 +32,7 @@ class AspirationUpdatedNotification extends Notification
     public function toArray(object $notifiable): array
     {
         $messages = [
-            'approved'  => 'Aspirasi kamu di "' . $this->aspiration->location . '" telah DISETUJUI! Tim sarpras akan segera menindaklanjuti.',
+            'approved'  => 'Aspirasi kamu di "' . $this->aspiration->location . '" telah DISETUJUI ADMIN! Tim sarpras akan segera menindaklanjuti.',
             'rejected'  => 'Aspirasi kamu di "' . $this->aspiration->location . '" DITOLAK. ' . ($this->aspiration->admin_message ?? ''),
             'progress'  => 'Ada update progress pada aspirasi kamu di "' . $this->aspiration->location . '".',
         ];

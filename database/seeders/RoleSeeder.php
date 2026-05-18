@@ -14,11 +14,10 @@ class RoleSeeder extends Seeder
      */
     public function run(): void
     {
-        $review = Permission::create(['name' => 'review aspiration']);
-        $approve = Permission::create(['name' => 'approve aspiration']);
-        $updateProgress = Permission::create(['name' => 'update progress']);
+        $review = Permission::firstOrCreate(['name' => 'review aspiration']);
+        $approve = Permission::firstOrCreate(['name' => 'approve aspiration']);
+        $updateProgress = Permission::firstOrCreate(['name' => 'update progress']);
         $admin = Role::firstOrCreate(['name' => 'admin']);
-        $ketua = Role::firstOrCreate(['name' => 'ketua_yayasan']);
 
         $admin->givePermissionTo([
             $review,
@@ -26,9 +25,6 @@ class RoleSeeder extends Seeder
             $updateProgress,
         ]);
 
-        $ketua->givePermissionTo([
-            $review,
-            $approve,
-        ]);
+        Role::where('name', 'ketua_yayasan')->delete();
     }
 }

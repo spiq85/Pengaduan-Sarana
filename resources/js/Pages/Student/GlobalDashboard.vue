@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { Head, Link, router, useForm } from "@inertiajs/vue3";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -15,8 +15,10 @@ const props = defineProps({
 
 const showCommentModal = ref(false);
 const activeAspiration = ref(null);
+const commentListRef = ref(null);
 const currentTime = ref(dayjs());
 const sidebarOpen = ref(false);
+const searchQuery = ref("");
 
 let timerInterval;
 onMounted(() => {
@@ -33,7 +35,19 @@ const commentForm = useForm({
     body: "",
 });
 
-// --- SweetAlert Toast Config ---
+// --- Filtered Aspirations ---
+const filteredAspirations = computed(() => {
+    if (!searchQuery.value) return props.aspirations;
+    const query = searchQuery.value.toLowerCase();
+    return props.aspirations.filter(a => 
+        a.description?.toLowerCase().includes(query) || 
+        a.location?.toLowerCase().includes(query) ||
+        a.student?.username?.toLowerCase().includes(query)
+    );
+});
+
+
+// --- SweetAlert Toast ---
 const Toast = Swal.mixin({
     toast: true,
     position: "top-end",
@@ -42,19 +56,13 @@ const Toast = Swal.mixin({
     timerProgressBar: true,
 });
 
-// --- SLA HELPER ---
+// --- HELPERS ---
 const getSLALabel = (aspiration) => {
     if (!aspiration.deadline) return null;
     const diff = dayjs(aspiration.deadline).diff(currentTime.value, "hour");
-    if (diff < 0)
-        return {
-            text: "OVERDUE",
-            class: "bg-rose-500 text-white animate-pulse",
-        };
-    if (diff <= 24)
-        return { text: "EMERGENCY", class: "bg-amber-500 text-white" };
-    if (diff <= 72)
-        return { text: "URGENT", class: "bg-orange-400 text-white" };
+    if (diff < 0) return { text: "OVERDUE", class: "bg-rose-500 text-white" };
+    if (diff <= 24) return { text: "EMERGENCY", class: "bg-amber-500 text-white" };
+    if (diff <= 72) return { text: "URGENT", class: "bg-orange-400 text-white" };
     return { text: "ON TRACK", class: "bg-blue-100 text-blue-600" };
 };
 
@@ -63,86 +71,56 @@ const getCountdown = (deadline) => {
     const target = dayjs(deadline);
     const diffDays = target.diff(currentTime.value, "day");
     if (diffDays < 1) return target.from(currentTime.value, true);
-    return `${diffDays} hari`;
+    return `${diffDays} hari lagi`;
 };
 
-// --- FUNCTIONS ---
 const openComment = (aspiration) => {
     activeAspiration.value = aspiration;
     showCommentModal.value = true;
+    nextTick(scrollToBottom);
+};
+
+const scrollToBottom = () => {
+    if (commentListRef.value) {
+        commentListRef.value.scrollTop = commentListRef.value.scrollHeight;
+    }
 };
 
 const submitComment = () => {
     if (!commentForm.body.trim()) return;
-    commentForm.post(
-        `/student/aspirations/${activeAspiration.value.id_aspiration}/comments`,
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                Swal.fire({
-                    icon: "success",
-                    title: "KOMENTAR TERKIRIM!",
-                    text: "Suaramu sudah masuk ke forum diskusi.",
-                    borderRadius: "2.5rem",
-                    confirmButtonColor: "#0f172a",
-                });
-                const updated = props.aspirations.find(
-                    (a) =>
-                        a.id_aspiration ===
-                        activeAspiration.value.id_aspiration,
-                );
-                if (updated) activeAspiration.value = updated;
-                commentForm.reset();
-            },
-        },
-    );
+    commentForm.post(`/student/aspirations/${activeAspiration.value.id_aspiration}/comments`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            const updated = props.aspirations.find(a => a.id_aspiration === activeAspiration.value.id_aspiration);
+            if (updated) activeAspiration.value = updated;
+            commentForm.reset();
+            nextTick(scrollToBottom);
+        }
+    });
 };
 
 const handleVote = (id) => {
-    router.post(
-        `/student/aspirations/${id}/vote`,
-        {},
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                Toast.fire({
-                    icon: "success",
-                    title: "Dukungan berhasil diperbarui",
-                });
-                const updated = props.aspirations.find(
-                    (a) => a.id_aspiration === id,
-                );
-                if (updated && activeAspiration.value?.id_aspiration === id) {
-                    activeAspiration.value = updated;
-                }
-            },
-        },
-    );
+    router.post(`/student/aspirations/${id}/vote`, {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+            Toast.fire({ icon: "success", title: "Dukungan diperbarui" });
+        }
+    });
 };
 
 const handleLogout = () => {
     Swal.fire({
-        title: "YAKIN MAU KELUAR?",
+        title: "Yakin mau keluar?",
         text: "Sesi kamu bakal berakhir di sini, cuy.",
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#0f172a",
         cancelButtonColor: "#f43f5e",
-        confirmButtonText: "YAP, LOGOUT!",
-        cancelButtonText: "BATAL",
-        background: "#ffffff",
-        borderRadius: "2.5rem",
-        customClass: {
-            title: "font-black tracking-tighter italic",
-            confirmButton:
-                "rounded-2xl px-6 py-3 font-black text-xs tracking-widest",
-            cancelButton:
-                "rounded-2xl px-6 py-3 font-black text-xs tracking-widest",
-        },
+        confirmButtonText: "Yap, Logout!",
+        cancelButtonText: "Batal",
+        borderRadius: "2rem",
     }).then((result) => {
-        if (result.isConfirmed) {
-            router.post("/student/logout");
-        }
+        if (result.isConfirmed) router.post("/student/logout");
     });
 };
 </script>
@@ -150,414 +128,267 @@ const handleLogout = () => {
 <template>
     <Head title="Jelajah Aspirasi" />
 
-    <div class="flex min-h-screen bg-slate-50 font-sans text-slate-900">
-        <!-- Mobile Header -->
-        <div
-            class="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between shadow-sm"
-        >
-            <div class="flex items-center gap-2">
-                <div
-                    class="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center text-white"
-                >
-                    <i class="fas fa-rocket text-xs"></i>
+    <div class="flex min-h-screen bg-[#F8FAFC] font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-600">
+        <!-- Modern Sidebar -->
+        <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" 
+               class="fixed lg:sticky top-0 h-screen w-80 bg-white border-r border-slate-200/60 p-8 flex flex-col z-[60] transition-transform duration-500 lg:translate-x-0 shadow-2xl lg:shadow-none">
+            <div class="mb-12 flex items-center gap-4">
+                <div class="h-12 w-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-200 ring-4 ring-blue-50">
+                    <i class="fas fa-rocket text-lg"></i>
                 </div>
-                <span
-                    class="font-black text-sm italic uppercase tracking-tighter"
-                    >Command<span class="text-blue-600">Center</span></span
-                >
-            </div>
-            <button
-                @click="sidebarOpen = !sidebarOpen"
-                class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600"
-            >
-                <i :class="sidebarOpen ? 'fas fa-times' : 'fas fa-bars'"></i>
-            </button>
-        </div>
-
-        <!-- Overlay -->
-        <div
-            v-if="sidebarOpen"
-            @click="sidebarOpen = false"
-            class="lg:hidden fixed inset-0 bg-black/40 z-40 backdrop-blur-sm"
-        ></div>
-
-        <aside
-            :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-            class="w-72 bg-white border-r border-slate-100 flex flex-col p-6 fixed lg:sticky top-0 h-screen z-50 lg:translate-x-0 transition-transform duration-300"
-        >
-            <div class="mb-10 px-2 flex items-center gap-3">
-                <div
-                    class="h-10 w-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200"
-                >
-                    <i class="fas fa-rocket text-sm"></i>
+                <div>
+                    <h1 class="text-xl font-black text-slate-800 tracking-tighter uppercase italic leading-none">Aspira<span class="text-blue-600">Chat</span></h1>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Student Portal</p>
                 </div>
-                <h2
-                    class="font-black text-slate-800 tracking-tighter text-xl italic uppercase"
-                >
-                    Command<span class="text-blue-600">Center</span>
-                </h2>
             </div>
 
             <nav class="flex-1 space-y-2">
-                <p
-                    class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 ml-2"
-                >
-                    Main Menu
-                </p>
-                <Link
-                    href="/student/dashboard"
-                    class="flex items-center gap-4 px-4 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-400 hover:bg-slate-50 hover:text-blue-600 transition-all"
-                >
-                    <i class="fas fa-th-large text-lg"></i>
-                    <span>Dashboard</span>
+                <p class="px-4 text-[11px] font-black text-slate-400 uppercase tracking-[0.25em] mb-6">Menu Navigasi</p>
+                <Link href="/student/dashboard" class="group flex items-center gap-4 px-5 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-all duration-300">
+                    <div class="w-10 h-10 rounded-xl bg-slate-50 group-hover:bg-white flex items-center justify-center shadow-sm transition-all"><i class="fas fa-th-large text-base"></i></div>
+                    <span>Beranda</span>
                 </Link>
-                <Link
-                    href="/student/input-aspirations"
-                    class="flex items-center gap-4 px-4 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-400 hover:bg-slate-50 hover:text-blue-600 transition-all"
-                >
-                    <i class="fas fa-paper-plane text-lg"></i>
-                    <span>Aspirasiku</span>
+                <Link href="/student/input-aspirations" class="group flex items-center gap-4 px-5 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-all duration-300">
+                    <div class="w-10 h-10 rounded-xl bg-slate-50 group-hover:bg-white flex items-center justify-center shadow-sm transition-all"><i class="fas fa-paper-plane text-base"></i></div>
+                    <span>Laporanku</span>
                 </Link>
-                <Link
-                    href="/student/global"
-                    class="flex items-center gap-4 px-4 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all bg-slate-900 text-white shadow-xl shadow-slate-200"
-                >
-                    <i class="fas fa-globe text-lg"></i>
-                    <span>Jelajah</span>
+                <Link href="/student/global" class="group flex items-center gap-4 px-5 py-4 rounded-2xl font-black text-xs uppercase tracking-widest bg-slate-900 text-white shadow-2xl shadow-slate-200">
+                    <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shadow-inner"><i class="fas fa-globe text-base text-blue-400"></i></div>
+                    <span>Eksplorasi</span>
+                </Link>
+                <Link href="/student/profile" class="group flex items-center gap-4 px-5 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-all duration-300">
+                    <div class="w-10 h-10 rounded-xl bg-slate-50 group-hover:bg-white flex items-center justify-center shadow-sm transition-all"><i class="fas fa-user text-base"></i></div>
+                    <span>Profilku</span>
                 </Link>
             </nav>
-            <Link
-                href="/student/profile"
-                class="flex items-center gap-4 px-4 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-400 hover:bg-slate-50 hover:text-blue-600 transition-all"
-                :class="{
-                    'bg-slate-900 text-white shadow-xl shadow-slate-200':
-                        $page.url === '/student/profile',
-                }"
-            >
-                <i class="fas fa-user-circle text-lg"></i>
-                <span>Profilku</span>
-            </Link>
 
-            <div class="mt-auto pt-6 border-t border-slate-100 space-y-4">
-                <button
-                    @click="handleLogout"
-                    class="w-full flex items-center gap-4 px-4 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-rose-500 hover:bg-rose-50 transition-all text-left"
-                >
-                    <i class="fas fa-power-off text-lg"></i>
-                    <span>Logout</span>
+            <div class="mt-auto pt-8 border-t border-slate-100">
+                <button @click="handleLogout" class="w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-rose-500 hover:bg-rose-50 transition-all">
+                    <div class="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center shadow-sm"><i class="fas fa-power-off"></i></div>
+                    <span>Keluar Sesi</span>
                 </button>
             </div>
         </aside>
 
-        <main class="flex-1 p-6 lg:p-10 pt-20 lg:pt-6">
-            <div class="max-w-2xl mx-auto">
-                <div class="mb-10 text-center relative">
-                    <div class="absolute right-0 top-0">
-                        <NotificationBell />
+        <main class="flex-1 min-w-0 flex flex-col">
+            <!-- Top Header -->
+            <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 px-6 lg:px-10 py-6 flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <button @click="sidebarOpen = true" class="lg:hidden w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center">
+                        <i class="fas fa-bars-staggered"></i>
+                    </button>
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-800 tracking-tighter uppercase italic">Eksplorasi <span class="text-blue-600">Suara</span></h2>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden sm:block">Temukan dan dukung aspirasi positif teman-temanmu</p>
                     </div>
-                    <h1
-                        class="text-4xl font-black tracking-tighter text-slate-800 uppercase italic"
-                    >
-                        Jelajah <span class="text-blue-600">Suara</span> 🌍
-                    </h1>
-                    <p
-                        class="text-slate-500 font-medium mt-2 uppercase text-[10px] tracking-widest font-black"
-                    >
-                        Lihat dan dukung aspirasi teman-temanmu
-                    </p>
                 </div>
+                <div class="flex items-center gap-4">
+                    <div class="hidden md:flex relative group">
+                        <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors"></i>
+                        <input v-model="searchQuery" type="text" placeholder="Cari aspirasi atau lokasi..." 
+                               class="bg-slate-100 border-none rounded-2xl pl-12 pr-6 py-3.5 text-xs font-bold w-64 focus:ring-4 focus:ring-blue-100 focus:bg-white transition-all">
+                    </div>
+                    <NotificationBell />
+                    <div class="h-12 w-12 rounded-2xl overflow-hidden ring-2 ring-slate-100 p-0.5 shadow-sm">
+                        <div class="w-full h-full bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 font-black text-sm uppercase">
+                            {{ student.username.substring(0, 2) }}
+                        </div>
+                    </div>
+                </div>
+            </header>
 
-                <div
-                    v-for="aspiration in aspirations"
-                    :key="aspiration.id_aspiration"
-                    class="bg-white rounded-[3rem] border border-slate-100 shadow-sm mb-8 overflow-hidden hover:shadow-xl transition-all duration-500 relative"
-                >
-                    <div
-                        v-if="aspiration.deadline"
-                        class="absolute top-6 right-8 flex flex-col items-end gap-1"
-                    >
-                        <span
-                            :class="[
-                                'px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm',
-                                getSLALabel(aspiration)?.class,
-                            ]"
-                        >
-                            {{ getSLALabel(aspiration)?.text }}
-                        </span>
-                        <p
-                            class="text-[10px] font-bold text-slate-400 uppercase"
-                        >
-                            Estimasi:
-                            {{ getCountdown(aspiration.deadline) }} lagi
-                        </p>
+            <div class="flex-1 p-6 lg:p-10 flex flex-col lg:flex-row gap-8">
+                <!-- Main Feed -->
+                <div class="flex-1 max-w-4xl space-y-8">
+
+                    <div v-if="filteredAspirations.length === 0" class="flex flex-col items-center justify-center py-20 text-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
+                        <div class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6 text-slate-300">
+                            <i class="fas fa-search-plus text-4xl"></i>
+                        </div>
+                        <h3 class="text-lg font-black text-slate-800 uppercase tracking-tighter">Aspirasi Tidak Ditemukan</h3>
+                        <p class="text-slate-500 text-sm mt-2 max-w-xs">Coba cari dengan kata kunci lain seperti nama gedung atau kategori.</p>
+                        <button @click="searchQuery = ''" class="mt-6 px-8 py-3 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest">Reset Pencarian</button>
                     </div>
 
-                    <div class="p-8">
-                        <div class="flex justify-between items-start mb-6">
+                    <!-- Post Cards -->
+                    <div v-for="aspiration in filteredAspirations" :key="aspiration.id_aspiration" 
+                         class="group bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm hover:shadow-2xl hover:shadow-blue-500/5 transition-all duration-500 overflow-hidden">
+                        
+                        <!-- Card Header -->
+                        <div class="p-8 pb-4 flex items-start justify-between">
                             <div class="flex items-center gap-4">
-                                <div
-                                    class="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-black text-sm border border-blue-100"
-                                >
-                                    {{
-                                        aspiration.student?.username
-                                            ?.substring(0, 2)
-                                            .toUpperCase()
-                                    }}
-                                </div>
+                                <Link :href="`/student/students/${aspiration.student?.id_student}`" class="relative">
+                                    <div class="h-14 w-14 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-600 font-black text-lg border-2 border-white ring-4 ring-slate-50 shadow-lg">
+                                        {{ aspiration.student?.username?.substring(0, 2).toUpperCase() }}
+                                    </div>
+                                    <div v-if="aspiration.student?.special_badges?.length" class="absolute -right-1 -bottom-1 w-6 h-6 bg-blue-600 rounded-lg flex items-center justify-center text-white ring-2 ring-white shadow-sm">
+                                        <i class="fas fa-check text-[10px]"></i>
+                                    </div>
+                                </Link>
                                 <div>
-                                    <h4
-                                        class="font-black text-xs text-slate-800 uppercase tracking-tighter"
-                                    >
+                                    <Link :href="`/student/students/${aspiration.student?.id_student}`" class="block font-black text-slate-800 uppercase tracking-tighter hover:text-blue-600 transition-colors">
                                         {{ aspiration.student?.username }}
-                                    </h4>
-                                    <p
-                                        class="text-[10px] text-blue-500 font-black uppercase tracking-widest mt-0.5"
-                                    >
-                                        {{
-                                            aspiration.category
-                                                ?.name_category || "Kategori"
-                                        }}
-                                        • {{ aspiration.location }}
-                                    </p>
+                                    </Link>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span class="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg uppercase tracking-widest">{{ aspiration.category?.name_category || 'General' }}</span>
+                                        <span class="text-slate-300 text-xs">•</span>
+                                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ aspiration.location }}</span>
+                                    </div>
                                 </div>
+                            </div>
+                            
+                            <div v-if="aspiration.deadline" class="hidden sm:flex flex-col items-end">
+                                <span :class="['px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-[0.15em] shadow-sm mb-1.5', getSLALabel(aspiration)?.class]">
+                                    {{ getSLALabel(aspiration)?.text }}
+                                </span>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{{ getCountdown(aspiration.deadline) }}</p>
                             </div>
                         </div>
 
-                        <p
-                            class="text-slate-600 font-medium text-sm leading-relaxed mb-6"
-                        >
-                            {{ aspiration.description }}
-                        </p>
+                        <!-- Card Body -->
+                        <div class="px-8 py-4">
+                            <p class="text-slate-600 text-base leading-relaxed font-medium line-clamp-4">{{ aspiration.description }}</p>
+                            
+                            <!-- Status Badge -->
+                            <div class="mt-6 flex items-center gap-3">
+                                <div :class="[
+                                    'px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] shadow-sm',
+                                    aspiration.progress_status === 'Selesai' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-amber-50 text-amber-600 border border-amber-100'
+                                ]">
+                                    {{ aspiration.progress_status }}
+                                </div>
+                                <span v-if="aspiration.progress_status === 'Selesai'" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">🎉 Masalah Teratasi</span>
+                            </div>
 
-                        <div class="flex items-center gap-2 mb-6">
-                            <span
-                                class="px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm"
-                                :class="
-                                    aspiration.progress_status === 'Selesai'
-                                        ? 'bg-emerald-50 text-emerald-600'
-                                        : 'bg-amber-50 text-amber-600'
-                                "
-                            >
-                                {{ aspiration.progress_status }}
-                            </span>
+                            <!-- Post Image -->
+                            <div v-if="aspiration.input?.image" class="mt-8 rounded-[2rem] overflow-hidden border border-slate-100 group-hover:shadow-lg transition-all">
+                                <img :src="`/storage/${aspiration.input.image}`" class="w-full h-auto object-cover max-h-[500px] hover:scale-105 transition-transform duration-700" alt="Evidence">
+                            </div>
                         </div>
 
-                        <div
-                            v-if="aspiration.input?.image"
-                            class="mb-6 rounded-[2rem] overflow-hidden border border-slate-100 bg-slate-50"
-                        >
-                            <img
-                                :src="`/storage/${aspiration.input.image}`"
-                                class="w-full h-auto object-cover max-h-96"
-                                alt="Evidence"
-                            />
+                        <!-- Card Footer -->
+                        <div class="p-8 pt-4 flex items-center justify-between border-t border-slate-50 mt-4 bg-slate-50/50">
+                            <div class="flex items-center gap-3">
+                                <button @click="handleVote(aspiration.id_aspiration)" 
+                                        :class="[
+                                            'flex items-center gap-2.5 px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all duration-300 active:scale-95',
+                                            aspiration.user_has_voted ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/30' : 'bg-white text-slate-400 hover:text-blue-600 hover:shadow-lg'
+                                        ]">
+                                    <i :class="aspiration.user_has_voted ? 'fas fa-thumbs-up' : 'far fa-thumbs-up'" class="text-base"></i>
+                                    <span>{{ aspiration.votes_count }}</span>
+                                </button>
+
+                                <button @click="openComment(aspiration)" 
+                                        class="flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-white text-slate-400 font-black text-xs uppercase tracking-widest hover:text-slate-900 hover:shadow-lg transition-all duration-300 active:scale-95">
+                                    <i class="far fa-comment-dots text-base"></i>
+                                    <span>{{ aspiration.comments?.length || 0 }}</span>
+                                </button>
+                            </div>
+
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ dayjs(aspiration.created_at).fromNow() }}</p>
                         </div>
+                    </div>
+                </div>
 
-                        <div
-                            class="flex items-center gap-4 pt-6 border-t border-slate-50"
-                        >
-                            <button
-                                @click="handleVote(aspiration.id_aspiration)"
-                                class="flex items-center gap-2 px-6 py-3 rounded-2xl transition-all"
-                                :class="
-                                    aspiration.user_has_voted
-                                        ? 'bg-blue-600 text-white shadow-lg'
-                                        : 'bg-slate-50 text-slate-400 hover:bg-blue-50 hover:text-blue-600'
-                                "
-                            >
-                                <i
-                                    class="text-lg"
-                                    :class="
-                                        aspiration.user_has_voted
-                                            ? 'fas fa-thumbs-up'
-                                            : 'far fa-thumbs-up'
-                                    "
-                                ></i>
-                                <span
-                                    class="text-xs font-black uppercase tracking-widest"
-                                    >{{ aspiration.votes_count }}</span
-                                >
-                            </button>
-
-                            <button
-                                @click="openComment(aspiration)"
-                                class="flex items-center gap-2 px-6 py-3 rounded-2xl bg-slate-50 text-slate-400 hover:bg-slate-100 transition-all"
-                            >
-                                <i class="far fa-comment-dots text-lg"></i>
-                                <span
-                                    class="text-xs font-black uppercase tracking-widest"
-                                    >{{
-                                        aspiration.comments?.length || 0
-                                    }}
-                                    Diskusi</span
-                                >
-                            </button>
+                <!-- Right Sidebar (Extra Info) -->
+                <div class="hidden xl:block w-80 space-y-8">
+                    <div class="sticky top-[120px]">
+                        <div class="p-8 bg-gradient-to-br from-slate-900 to-slate-800 rounded-[2.5rem] relative overflow-hidden shadow-2xl shadow-slate-200">
+                            <div class="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/20 rounded-full blur-2xl"></div>
+                            <div class="relative z-10">
+                                <h3 class="text-white font-black text-lg uppercase tracking-tighter italic leading-tight">Sampaikan <br> Aspirasimu!</h3>
+                                <p class="text-slate-400 text-xs mt-3 mb-8 leading-relaxed">Punya keluhan soal fasilitas? Jangan dipendam sendiri cuy, suarakan sekarang!</p>
+                                <Link href="/student/input-aspirations/create" class="block text-center py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-blue-500/30 hover:scale-105 active:scale-95 transition-all">
+                                    BUAT LAPORAN
+                                </Link>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </main>
 
-        <!-- Comment Modal -->
-        <transition
-            enter-active-class="transition ease-out duration-300"
-            enter-from-class="opacity-0"
-            enter-to-class="opacity-100"
-            leave-active-class="transition ease-in duration-200"
-            leave-from-class="opacity-100"
-            leave-to-class="opacity-0"
-        >
-        <div
-            v-if="showCommentModal"
-            class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm"
-            @click.self="showCommentModal = false"
-        >
-            <transition
-                enter-active-class="transition ease-out duration-300"
-                enter-from-class="opacity-0 translate-y-8 sm:scale-95"
-                enter-to-class="opacity-100 translate-y-0 sm:scale-100"
-                leave-active-class="transition ease-in duration-200"
-                leave-from-class="opacity-100 translate-y-0 sm:scale-100"
-                leave-to-class="opacity-0 translate-y-8 sm:scale-95"
-            >
-            <div
-                v-if="showCommentModal"
-                class="bg-white w-full sm:max-w-lg sm:rounded-[2.5rem] rounded-t-[2.5rem] max-h-[85vh] sm:max-h-[80vh] flex flex-col shadow-2xl overflow-hidden"
-            >
-                <!-- Header with context -->
-                <div class="bg-slate-900 p-6 relative overflow-hidden">
-                    <div class="absolute -right-6 -top-6 w-28 h-28 bg-blue-600/20 rounded-full blur-2xl"></div>
-                    <div class="relative z-10">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-                                    <i class="fas fa-comments text-sm"></i>
+        <!-- Modern Comment Modal -->
+        <transition enter-active-class="transition duration-300 ease-out" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition duration-200 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
+            <div v-if="showCommentModal" class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6 bg-slate-900/60 backdrop-blur-md" @click.self="showCommentModal = false">
+                <transition enter-active-class="transition duration-500 ease-out" enter-from-class="opacity-0 translate-y-full sm:translate-y-12 sm:scale-95" enter-to-class="opacity-100 translate-y-0 sm:scale-100" leave-active-class="transition duration-300 ease-in" leave-from-class="opacity-100 translate-y-0 sm:scale-100" leave-to-class="opacity-0 translate-y-full sm:translate-y-12 sm:scale-95">
+                    <div class="bg-white w-full max-w-2xl h-[85vh] sm:h-[80vh] sm:rounded-[3rem] rounded-t-[3rem] flex flex-col shadow-2xl overflow-hidden relative">
+                        <!-- Modal Header -->
+                        <div class="bg-slate-900 px-8 py-6 flex items-center justify-between relative overflow-hidden">
+                            <div class="absolute -right-10 -top-10 w-40 h-40 bg-blue-600/20 rounded-full blur-3xl"></div>
+                            <div class="relative z-10 flex items-center gap-4">
+                                <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                                    <i class="fas fa-comments text-lg"></i>
                                 </div>
                                 <div>
-                                    <h3 class="font-black text-sm text-white uppercase tracking-widest">Forum Diskusi</h3>
-                                    <p class="text-blue-400 text-[10px] font-bold uppercase tracking-wider mt-0.5">
-                                        {{ activeAspiration?.comments?.length || 0 }} komentar
-                                    </p>
+                                    <h3 class="font-black text-white uppercase tracking-widest italic">Diskusi Forum</h3>
+                                    <p class="text-blue-400 text-[10px] font-bold uppercase tracking-widest mt-0.5">{{ activeAspiration?.comments?.length || 0 }} Komentar Aktif</p>
                                 </div>
                             </div>
-                            <button
-                                @click="showCommentModal = false"
-                                class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all"
-                            >
-                                <i class="fas fa-times text-xs"></i>
+                            <button @click="showCommentModal = false" class="relative z-10 w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all">
+                                <i class="fas fa-times"></i>
                             </button>
                         </div>
-                        <!-- Aspiration preview -->
-                        <div class="bg-white/5 rounded-2xl p-3 flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center text-[10px] font-black">
-                                {{ activeAspiration?.student?.username?.substring(0, 2).toUpperCase() }}
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-white text-xs font-bold truncate">{{ activeAspiration?.location }}</p>
-                                <p class="text-slate-400 text-[10px] truncate">{{ activeAspiration?.description }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Messages -->
-                <div class="flex-1 overflow-y-auto p-5 space-y-4 bg-gradient-to-b from-slate-50/80 to-white">
-                    <!-- Empty state -->
-                    <div v-if="!activeAspiration?.comments?.length" class="flex flex-col items-center justify-center py-12">
-                        <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                            <i class="far fa-comment-dots text-2xl text-slate-300"></i>
-                        </div>
-                        <p class="font-black text-[10px] text-slate-400 uppercase tracking-widest mb-1">Belum ada diskusi</p>
-                        <p class="text-slate-400 text-xs">Jadi yang pertama berkomentar!</p>
-                    </div>
-
-                    <!-- Comments list -->
-                    <div
-                        v-for="(comment, index) in activeAspiration?.comments"
-                        :key="comment.id_comment"
-                        class="group"
-                    >
-                        <!-- Own comment (right aligned) -->
-                        <div
-                            v-if="comment.student_id === student.id_student"
-                            class="flex justify-end gap-2"
-                        >
-                            <div class="max-w-[80%]">
-                                <div class="bg-blue-600 px-5 py-3.5 rounded-[1.5rem] rounded-br-lg shadow-sm shadow-blue-200/30">
-                                    <p class="text-sm text-white leading-relaxed">{{ comment.body }}</p>
+                        <!-- Comment List -->
+                        <div ref="commentListRef" class="flex-1 overflow-y-auto p-8 space-y-6 bg-slate-50/50 no-scrollbar">
+                            <div v-for="comment in activeAspiration?.comments" :key="comment.id_comment" 
+                                 class="flex gap-4" :class="Number(comment.student_id) === Number(student.id_student) ? 'flex-row-reverse' : 'flex-row'">
+                                
+                                <div class="h-10 w-10 shrink-0 rounded-xl flex items-center justify-center text-[10px] font-black shadow-sm ring-2 ring-white"
+                                     :class="Number(comment.student_id) === Number(student.id_student) ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500'">
+                                    {{ comment.student?.username?.substring(0, 2).toUpperCase() }}
                                 </div>
-                                <p class="text-[9px] font-bold text-slate-400 mt-1.5 text-right mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    {{ comment.created_at ? new Date(comment.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : '' }}
-                                </p>
+
+                                <div class="max-w-[75%] space-y-1" :class="Number(comment.student_id) === Number(student.id_student) ? 'items-end flex flex-col' : 'items-start flex flex-col'">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ comment.student?.username }}</span>
+                                    </div>
+                                    <div class="px-5 py-4 rounded-[1.5rem] text-sm font-medium shadow-sm leading-relaxed"
+                                         :class="Number(comment.student_id) === Number(student.id_student) 
+                                            ? 'bg-blue-600 text-white rounded-tr-none shadow-blue-500/10' 
+                                            : 'bg-white text-slate-700 border border-slate-100 rounded-tl-none'">
+                                        {{ comment.body }}
+                                    </div>
+                                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest pt-1">{{ dayjs(comment.created_at).fromNow() }}</span>
+                                </div>
                             </div>
-                            <div class="w-8 h-8 shrink-0 rounded-xl bg-blue-600 text-white flex items-center justify-center text-[9px] font-black shadow-sm">
-                                {{ comment.student?.username?.substring(0, 2).toUpperCase() }}
+
+                            <div v-if="!activeAspiration?.comments?.length" class="h-full flex flex-col items-center justify-center text-center opacity-40 py-20">
+                                <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4"><i class="fas fa-comment-slash text-3xl"></i></div>
+                                <p class="text-xs font-black uppercase tracking-widest">Belum ada diskusi</p>
                             </div>
                         </div>
 
-                        <!-- Other's comment (left aligned) -->
-                        <div v-else class="flex gap-2">
-                            <div class="w-8 h-8 shrink-0 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center text-[9px] font-black border border-slate-200">
-                                {{ comment.student?.username?.substring(0, 2).toUpperCase() }}
-                            </div>
-                            <div class="max-w-[80%]">
-                                <p class="text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1 ml-2">
-                                    {{ comment.student?.username }}
-                                </p>
-                                <div class="bg-white px-5 py-3.5 rounded-[1.5rem] rounded-tl-lg border border-slate-100 shadow-sm">
-                                    <p class="text-sm text-slate-700 leading-relaxed">{{ comment.body }}</p>
-                                </div>
-                                <p class="text-[9px] font-bold text-slate-400 mt-1.5 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    {{ comment.created_at ? new Date(comment.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : '' }}
-                                </p>
-                            </div>
+                        <!-- Input area -->
+                        <div class="p-6 bg-white border-t border-slate-100">
+                            <form @submit.prevent="submitComment" class="flex items-center gap-3 bg-slate-100 rounded-[2rem] p-1.5 focus-within:ring-4 focus-within:ring-blue-100 transition-all">
+                                <textarea v-model="commentForm.body" rows="1" @keydown.enter.exact.prevent="submitComment" 
+                                          class="flex-1 bg-transparent border-none focus:ring-0 px-6 py-3 text-sm font-medium text-slate-700 resize-none no-scrollbar" 
+                                          placeholder="Tulis pendapatmu..."></textarea>
+                                <button type="submit" :disabled="!commentForm.body.trim() || commentForm.processing" 
+                                        class="h-12 w-12 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-blue-500/30 hover:scale-105 active:scale-95 disabled:bg-slate-300 disabled:shadow-none transition-all">
+                                    <i class="fas fa-paper-plane text-xs"></i>
+                                </button>
+                            </form>
                         </div>
                     </div>
-                </div>
-
-                <!-- Input area -->
-                <div class="p-4 bg-white border-t border-slate-100">
-                    <form @submit.prevent="submitComment" class="flex items-end gap-3">
-                        <div class="flex-1 relative">
-                            <textarea
-                                v-model="commentForm.body"
-                                class="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 text-sm font-medium focus:ring-2 focus:ring-blue-600/10 focus:border-blue-300 resize-none outline-none transition-all placeholder:text-slate-400"
-                                placeholder="Tulis komentar..."
-                                rows="1"
-                                @input="$event.target.style.height = 'auto'; $event.target.style.height = Math.min($event.target.scrollHeight, 100) + 'px'"
-                                @keydown.enter.exact.prevent="submitComment"
-                            ></textarea>
-                        </div>
-                        <button
-                            type="submit"
-                            :disabled="commentForm.processing || !commentForm.body.trim()"
-                            class="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 hover:bg-slate-900 disabled:bg-slate-200 disabled:shadow-none transition-all active:scale-90 shrink-0"
-                        >
-                            <i class="fas fa-paper-plane text-xs" :class="{ 'animate-pulse': commentForm.processing }"></i>
-                        </button>
-                    </form>
-                    <p class="text-[9px] text-slate-400 font-medium mt-2 text-center">
-                        Tekan <span class="font-black">Enter</span> untuk kirim
-                    </p>
-                </div>
+                </transition>
             </div>
-            </transition>
-        </div>
         </transition>
     </div>
 </template>
 
 <style scoped>
-/* Hide scrollbar tapi tetap bisa scroll */
-:deep(.overflow-y-auto),
-:deep(textarea) {
-    scrollbar-width: none !important;
-    -ms-overflow-style: none !important;
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
-:deep(.overflow-y-auto)::-webkit-scrollbar,
-:deep(textarea)::-webkit-scrollbar {
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
+
+.animate-feed {
+    animation: slideUp 0.5s ease-out forwards;
 }
 </style>

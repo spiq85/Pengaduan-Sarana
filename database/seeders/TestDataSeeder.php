@@ -40,6 +40,7 @@ class TestDataSeeder extends Seeder
                 'id_category' => 1, // Sarana
                 'input_at' => Carbon::now(),
                 'submission_status' => 'menunggu',
+                'title' => 'AC Lab Komputer Tidak Dingin',
                 'location' => 'Lab Komputer 2',
                 'description' => 'AC di lab tidak dingin, mohon dicek.',
             ],
@@ -47,7 +48,8 @@ class TestDataSeeder extends Seeder
                 'input_by' => $student->id_student,
                 'id_category' => 2, // Prasarana
                 'input_at' => Carbon::now()->subDays(1),
-                'submission_status' => 'reviewed',
+                'submission_status' => 'menunggu',
+                'title' => 'Atap Kantin Bocor',
                 'location' => 'Kantin Belakang',
                 'description' => 'Atap kantin ada yang bocor saat hujan deras.',
             ],
@@ -56,6 +58,7 @@ class TestDataSeeder extends Seeder
                 'id_category' => 3, // Kebersihan
                 'input_at' => Carbon::now()->subDays(2),
                 'submission_status' => 'diterima',
+                'title' => 'Sampah Toilet Menumpuk',
                 'location' => 'Toilet Lantai 2',
                 'description' => 'Tempat sampah di toilet pria sudah penuh dan berbau.',
                 'admin_message' => 'Sudah ditindaklanjuti oleh petugas kebersihan.',

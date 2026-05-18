@@ -4,7 +4,7 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h4 class="fw-bold text-white mb-0">Manajemen Akun Siswa</h4>
+        <h4 class="fw-bold text-white mb-0" style="background: linear-gradient(120deg, #6c4ef6 0%, #4f7eff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Manajemen Akun Siswa</h4>
         <p class="text-secondary small mb-0">Total terdaftar: {{ $students->total() }} siswa</p>
     </div>
     <a href="{{ route('admin.students.create') }}" class="btn btn-primary btn-custom">
@@ -31,7 +31,7 @@
             <tbody class="text-secondary">
                 @foreach ($students as $student)
                 <tr>
-                    <td class="ps-4 text-white-50">{{ $loop->iteration }}</td>
+                    <td class="ps-4 text-secondary">{{ $loop->iteration }}</td>
                     <td class="fw-bold text-white">{{ $student->nis }}</td>
                     <td>{{ $student->username }}</td>
                     <td><span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25">{{ $student->class }}</span></td>
@@ -56,7 +56,7 @@
         </table>
     </div>
 </div>
-<div class="mt-4 d-flex justify-content-center custom-pagination bg-dark-secondary p-3 rounded-3">
+<div class="mt-4 d-flex justify-content-center custom-pagination p-3 rounded-3" style="background:#f7faff; border:1px solid #dbe5ff;">
     {{ $students->links() }}
 </div>
 @endsection

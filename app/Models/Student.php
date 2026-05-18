@@ -34,4 +34,9 @@ class Student extends Authenticatable
     {
         return $this->hasMany(Aspirations::class, 'input_by', 'id_student');
     }
+
+    public function votesGiven()
+    {
+        return $this->hasMany(Vote::class, 'student_id', 'id_student');
+    }
 }

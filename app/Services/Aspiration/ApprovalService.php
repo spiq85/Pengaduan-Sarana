@@ -2,33 +2,44 @@
 
 namespace App\Services\Aspiration;
 
-use App\Models\InputAspirations;
 use App\Models\Aspirations;
 use Illuminate\Support\Facades\DB;
 
 class ApprovalService
 {
     /**
-     * Approve aspirasi dan tentukan SLA berdasarkan jumlah dukungan (Votes)
-     */
-    /**
-     * Hitung priority & durasi SLA berdasarkan jumlah vote
+    * Hitung priority berdasarkan jumlah vote, durasi tetap 14 hari.
      */
     public static function calculateSLA(int $votesCount): array
     {
+        $priority = 'Normal';
+
         if ($votesCount >= 10) {
-            return ['days' => 3, 'priority' => 'Emergency'];
-        } elseif ($votesCount >= 5) {
-            return ['days' => 7, 'priority' => 'Urgent'];
+            $priority = 'Emergency';
+        } else if ($votesCount >= 5) {
+            $priority = 'Urgent';
         }
-        return ['days' => 14, 'priority' => 'Normal'];
+
+        return [
+            'priority' => $priority,
+            'days' => 14,
+        ];
     }
 
-    public function approve($input, $userId)
+    public function approve($input, $userId, ?string $instruction = null)
     {
-        return DB::transaction(function () use ($input, $userId) {
+        return DB::transaction(function () use ($input, $userId, $instruction) {
+            if ($input->submission_status !== 'menunggu') {
+                return $input->aspiration;
+            }
+
             // 1. Update status di tabel input_aspirations
-            $input->update(['submission_status' => 'diterima']);
+            $input->update([
+                'submission_status' => 'diterima',
+                'is_kept' => false,
+                'kept_until' => null,
+                'kept_note' => null,
+            ]);
 
             // 2. Default SLA saat approve (belum ada votes)
             $sla = self::calculateSLA(0);
@@ -45,7 +56,17 @@ class ApprovalService
                 'progress_status' => 'Belum Dimulai',
                 'priority_level' => $sla['priority'],
                 'start_at' => now(),
-                'end_at' => now()->addDays($sla['days']),
+                'end_at' => now()->addDays(14),
+                'deadline' => now()->addDays(14),
+                // Keep this field for backward compatibility with existing schema.
+                'ketua_instruction' => $instruction,
+            ]);
+
+            // 3.5 Tambahkan pesan ke timeline chat (Feedback)
+            $aspiration->feedbacks()->create([
+                'feedback_by' => $userId,
+                'message' => 'Admin menyetujui aspirasi ini: ' . ($instruction ?: 'Aspirasi Anda akan segera kami proses.'),
+                'feedback_at' => now(),
             ]);
 
             // 4. Fire event untuk kirim notifikasi ke siswa
@@ -55,11 +76,4 @@ class ApprovalService
         });
     }
 
-    /**
-     * Reject aspirasi
-     */
-    public function reject(InputAspirations $input): void
-    {
-        $input->update(['submission_status' => 'ditolak']);
-    }
 }

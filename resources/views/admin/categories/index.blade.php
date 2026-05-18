@@ -4,7 +4,7 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h4 class="fw-bold text-white mb-0">Kategori Aspirasi</h4>
+        <h4 class="fw-bold text-white mb-0" style="background: linear-gradient(120deg, #6c4ef6 0%, #4f7eff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Kategori Aspirasi</h4>
         <p class="text-secondary small mb-0">Klasifikasi pengaduan sarana prasarana</p>
     </div>
     <a href="{{ route('admin.categories.create') }}" class="btn btn-primary btn-custom">
@@ -30,7 +30,7 @@
             <tbody class="text-secondary">
                 @foreach ($categories as $category)
                 <tr>
-                    <td class="ps-4 text-white-50">{{ $loop->iteration }}</td>
+                    <td class="ps-4 text-secondary">{{ $loop->iteration }}</td>
                     <td>
                         <span class="fw-bold text-white d-block">{{ $category->category_name }}</span>
                     </td>

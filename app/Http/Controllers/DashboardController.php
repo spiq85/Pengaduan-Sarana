@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Services\StatsService;
 use Illuminate\Support\Facades\Auth;
+use App\Models\InputAspirations;
 
 class DashboardController extends Controller
 {
@@ -17,6 +18,7 @@ class DashboardController extends Controller
     
     public function index(Request $request)
     {
+        /** @var \App\Models\User|null $user */
         $user = Auth::user();
 
         $trendFilter = $request->query('trend', 'daily');
@@ -25,12 +27,14 @@ class DashboardController extends Controller
         $stats = $this->statsService->getDashboardStats();
         $charts = $this->statsService->getChartData($trendFilter);
 
-        if ($user->hasRole('admin')) {
-            return view('admin.dashboard', compact('stats', 'charts', 'trendFilter'));
-        } 
-        
-        if ($user->hasRole('ketua_yayasan')) {
-            return view('ketua.dashboard', compact('stats', 'charts'));
+        if ($user && $user->hasRole('admin')) {
+            $recentAdminQueue = InputAspirations::with(['student', 'category'])
+                ->where('submission_status', 'menunggu')
+                ->latest()
+                ->take(8)
+                ->get();
+
+            return view('admin.dashboard', compact('stats', 'charts', 'trendFilter', 'recentAdminQueue'));
         }
 
         return redirect('/')->with('error', 'Unauthorized access');

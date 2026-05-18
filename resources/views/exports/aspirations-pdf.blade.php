@@ -33,7 +33,6 @@
             font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
         }
         .badge-menunggu { background: #fef3c7; color: #92400e; }
-        .badge-reviewed { background: #dbeafe; color: #1e40af; }
         .badge-diterima { background: #d1fae5; color: #065f46; }
         .badge-ditolak { background: #fee2e2; color: #991b1b; }
         
@@ -47,7 +46,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>📋 Laporan Aspirasi Siswa</h1>
+        <h1>Laporan Aspirasi Siswa (Selesai)</h1>
         <p>Sistem Pengaduan Sarana & Prasarana</p>
         <div class="date">Dicetak: {{ now()->format('d F Y, H:i') }} WIB</div>
     </div>
@@ -55,33 +54,39 @@
     <div class="stats-row">
         <div class="stat-box">
             <div class="number">{{ $stats['total'] }}</div>
-            <div class="label">Total Aspirasi</div>
+            <div class="label">Total Selesai</div>
         </div>
         <div class="stat-box">
-            <div class="number">{{ $stats['menunggu'] }}</div>
-            <div class="label">Menunggu</div>
+            <div class="number">
+                @php
+                    $avg = $aspirations->whereNotNull('rating')->avg('rating');
+                @endphp
+                {{ number_format($avg, 1) }}
+            </div>
+            <div class="label">Rata-rata Rating</div>
         </div>
         <div class="stat-box">
             <div class="number">{{ $stats['diterima'] }}</div>
-            <div class="label">Diterima</div>
+            <div class="label">Status Diterima</div>
         </div>
         <div class="stat-box">
             <div class="number">{{ $stats['ditolak'] }}</div>
-            <div class="label">Ditolak</div>
+            <div class="label">Status Ditolak</div>
         </div>
     </div>
 
     <table class="data">
         <thead>
             <tr>
-                <th style="width: 5%;">No</th>
-                <th style="width: 12%;">Siswa</th>
-                <th style="width: 12%;">Kategori</th>
-                <th style="width: 12%;">Lokasi</th>
-                <th style="width: 25%;">Deskripsi</th>
-                <th style="width: 10%;">Status</th>
-                <th style="width: 10%;">Progress</th>
-                <th style="width: 14%;">Tanggal</th>
+                <th style="width: 4%;">No</th>
+                <th style="width: 10%;">Siswa</th>
+                <th style="width: 10%;">Kategori</th>
+                <th style="width: 10%;">Lokasi</th>
+                <th style="width: 20%;">Deskripsi</th>
+                <th style="width: 8%;">Rating</th>
+                <th style="width: 20%;">Feedback Siswa</th>
+                <th style="width: 8%;">Progress</th>
+                <th style="width: 10%;">Tanggal</th>
             </tr>
         </thead>
         <tbody>
@@ -91,12 +96,15 @@
                 <td>{{ $item->student->username ?? 'N/A' }}</td>
                 <td>{{ $item->category->category_name ?? '-' }}</td>
                 <td>{{ $item->location }}</td>
-                <td>{{ Str::limit($item->description, 80) }}</td>
-                <td>
-                    <span class="badge badge-{{ $item->submission_status }}">
-                        {{ $item->submission_status }}
-                    </span>
+                <td>{{ Str::limit($item->description, 60) }}</td>
+                <td style="text-align: center;">
+                    @if($item->rating)
+                        <span style="color: #f59e0b; font-weight: 900;">{{ $item->rating }} / 5</span>
+                    @else
+                        <span style="color: #94a3b8;">-</span>
+                    @endif
                 </td>
+                <td>{{ $item->feedback ?: '-' }}</td>
                 <td>
                     @if ($item->aspiration)
                         @php
@@ -117,7 +125,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="8" style="text-align: center; padding: 30px; color: #94a3b8;">Tidak ada data aspirasi.</td>
+                <td colspan="9" style="text-align: center; padding: 30px; color: #94a3b8;">Tidak ada data aspirasi selesai.</td>
             </tr>
             @endforelse
         </tbody>

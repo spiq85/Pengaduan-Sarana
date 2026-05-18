@@ -8,12 +8,19 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
         :root {
-            --bg-main: #0a0b10;
-            --bg-card: #12141c;
-            --border-color: #1f222d;
-            --accent-color: #3d5afe;
-            --text-dim: #8a8d98;
+            --bg-main: #f6f8ff;
+            --bg-main-2: #eef3ff;
+            --bg-card: #ffffff;
+            --border-color: #e5eaff;
+            --accent-color: #7a5af8;
+            --accent-soft: #f0ebff;
+            --info-color: #5b8dff;
+            --text-dim: #6b6f94;
+            --text-main: #1f2759;
+            --shadow-soft: 0 14px 38px rgba(85, 100, 210, 0.12);
         }
 
         * {
@@ -23,9 +30,12 @@
         }
 
         body {
-            font-family: 'Inter', 'Segoe UI', sans-serif;
-            background-color: var(--bg-main);
-            color: #f1f1f1;
+            font-family: 'Manrope', 'Segoe UI', sans-serif;
+            background:
+                radial-gradient(circle at 8% 12%, #f3eaff 0%, rgba(243, 234, 255, 0) 40%),
+                radial-gradient(circle at 92% 16%, #e3edff 0%, rgba(227, 237, 255, 0) 34%),
+                linear-gradient(160deg, var(--bg-main) 0%, var(--bg-main-2) 100%);
+            color: var(--text-main);
             min-height: 100vh;
         }
 
@@ -36,8 +46,9 @@
             top: 0;
             height: 100vh;
             width: 260px;
-            background: #0f111a;
+            background: linear-gradient(190deg, #ffffff 0%, #f6f9ff 100%);
             border-right: 1px solid var(--border-color);
+            box-shadow: 8px 0 30px rgba(85, 100, 210, 0.08);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 1000;
         }
@@ -51,23 +62,28 @@
             .sidebar {
                 transform: translateX(-100%);
             }
+
             .sidebar.mobile-open {
                 transform: translateX(0);
             }
+
             .sidebar.collapsed {
                 width: 260px;
             }
+
             .main-content {
                 margin-left: 0 !important;
             }
+
             .mobile-overlay {
                 display: none;
                 position: fixed;
                 inset: 0;
-                background: rgba(0,0,0,0.5);
+                background: rgba(0, 0, 0, 0.5);
                 z-index: 999;
                 backdrop-filter: blur(2px);
             }
+
             .mobile-overlay.active {
                 display: block;
             }
@@ -80,8 +96,9 @@
             left: 0;
             right: 0;
             height: 56px;
-            background: #0f111a;
+            background: rgba(255, 255, 255, 0.9);
             border-bottom: 1px solid var(--border-color);
+            backdrop-filter: blur(10px);
             z-index: 998;
             padding: 0 16px;
             align-items: center;
@@ -92,6 +109,7 @@
             .mobile-header {
                 display: flex;
             }
+
             .main-content {
                 padding-top: 76px !important;
             }
@@ -108,11 +126,12 @@
         .logo-icon {
             width: 35px;
             height: 35px;
-            background: var(--accent-color);
-            border-radius: 6px;
+            background: linear-gradient(140deg, #7a5af8 0%, #5b8dff 100%);
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 10px 22px rgba(122, 90, 248, 0.28);
         }
 
         .sidebar.collapsed .logo-text {
@@ -124,22 +143,26 @@
             display: flex;
             align-items: center;
             gap: 16px;
-            color: var(--text-dim);
+            color: #656c99;
             text-decoration: none;
             transition: 0.2s;
             font-size: 0.95rem;
-            font-weight: 500;
+            font-weight: 700;
+            border-radius: 12px;
+            margin: 2px 8px;
         }
 
         .menu-item:hover {
-            color: #fff;
-            background: rgba(255, 255, 255, 0.03);
+            color: #273372;
+            background: linear-gradient(90deg, #f0ebff 0%, #eaf1ff 100%);
+            transform: translateX(3px);
         }
 
         .menu-item.active {
-            color: #fff;
-            background: rgba(61, 90, 254, 0.1);
-            border-right: 3px solid var(--accent-color);
+            color: #1f2759;
+            background: linear-gradient(95deg, #ece4ff 0%, #e7f0ff 100%);
+            border-right: 3px solid #7a5af8;
+            box-shadow: 0 10px 24px rgba(122, 90, 248, 0.2);
         }
 
         .sidebar.collapsed .menu-text {
@@ -151,6 +174,7 @@
             margin-left: 260px;
             padding: 40px;
             transition: 0.3s;
+            animation: fadeInUp 0.45s ease-out;
         }
 
         .sidebar.collapsed~.main-content {
@@ -161,16 +185,23 @@
         .stat-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
+            border-radius: 18px;
             padding: 24px;
+            box-shadow: var(--shadow-soft);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 18px 34px rgba(85, 100, 210, 0.16);
         }
 
         /* TABLE DARK MODE FIX */
         .table {
             --bs-table-bg: transparent !important;
-            --bs-table-color: #e0e0e0 !important;
-            --bs-table-border-color: #1f222d !important;
-            --bs-table-hover-bg: rgba(255, 255, 255, 0.02) !important;
+            --bs-table-color: #293367 !important;
+            --bs-table-border-color: #e7ecff !important;
+            --bs-table-hover-bg: #f3f7ff !important;
         }
 
         .table thead th {
@@ -178,7 +209,8 @@
             text-transform: uppercase;
             font-size: 0.75rem;
             letter-spacing: 1px;
-            border-bottom: 1px solid #1f222d !important;
+            border-bottom: 1px solid #e7ecff !important;
+            background: #f8faff;
             padding: 15px;
         }
 
@@ -188,40 +220,39 @@
         }
 
         .table tbody tr:hover td {
-            color: #ffffff !important;
-            background-color: rgba(255, 255, 255, 0.05) !important;
-            /* Warna hover yang lebih halus */
+            color: #1f2759 !important;
+            background-color: #f3f7ff !important;
         }
 
         .table tbody tr:hover td * {
-            color: #ffffff !important;
+            color: #2f2359 !important;
         }
 
         /* INPUT & FILTER DARK MODE FIX */
         .form-control,
         .form-select {
-            background-color: rgba(255, 255, 255, 0.05) !important;
-            border: 1px solid var(--border-color) !important;
-            color: #fff !important;
+            background-color: #ffffff !important;
+            border: 1px solid #dbe4ff !important;
+            color: #243062 !important;
             border-radius: 8px;
         }
 
         .form-select option {
-            background-color: #12141c !important;
-            color: #fff !important;
+            background-color: #ffffff !important;
+            color: #243062 !important;
             padding: 10px;
         }
 
         .form-control:focus,
         .form-select:focus {
-            background-color: rgba(255, 255, 255, 0.1) !important;
-            border-color: var(--accent-color) !important;
-            color: #fff !important;
-            box-shadow: 0 0 0 0.25rem rgba(61, 90, 254, 0.25) !important;
+            background-color: #ffffff !important;
+            border-color: #7a5af8 !important;
+            color: #243062 !important;
+            box-shadow: 0 0 0 0.25rem rgba(122, 90, 248, 0.14) !important;
         }
 
         ::placeholder {
-            color: rgba(255, 255, 255, 0.3) !important;
+            color: #9ea8cd !important;
         }
 
         .text-label {
@@ -238,6 +269,68 @@
             font-weight: 500;
             font-size: 0.9rem;
         }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #7a5af8 0%, #5b8dff 100%);
+            border-color: #7a5af8;
+            box-shadow: 0 10px 20px rgba(122, 90, 248, 0.22);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #6848eb 0%, #4d7df2 100%);
+            border-color: #6848eb;
+        }
+
+        .btn-outline-secondary {
+            color: #5c699b !important;
+            border-color: #cad7ff !important;
+            background: #fff !important;
+        }
+
+        .btn-outline-secondary:hover {
+            color: #1f2759 !important;
+            background: #edf4ff !important;
+        }
+
+        .main-content .text-white {
+            color: #1f2759 !important;
+        }
+
+        .main-content .text-white-50,
+        .main-content .text-secondary {
+            color: #6b739f !important;
+        }
+
+        .main-content .bg-dark {
+            background: #f5f8ff !important;
+            color: #1f2759 !important;
+            border-color: #dee6ff !important;
+        }
+
+        .main-content .border-secondary {
+            border-color: #dbe4ff !important;
+        }
+
+        .main-content [style*="#1a1d21"],
+        .main-content [style*="#161822"],
+        .main-content [style*="#12141c"],
+        .main-content [style*="#0f111a"] {
+            background: #ffffff !important;
+            border-color: #e5eaff !important;
+            color: #1f2759 !important;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 </head>
 
@@ -246,9 +339,9 @@
     <div class="mobile-header">
         <div class="d-flex align-items-center gap-2">
             <div class="logo-icon" style="width:30px;height:30px;"><i class="fas fa-shield-alt text-white" style="font-size:12px;"></i></div>
-            <span class="fw-bold text-white" style="font-size: 14px;">ADMIN CONTROL</span>
+            <span class="fw-bold" style="font-size: 14px; color:#2f2359;">ADMIN CONTROL</span>
         </div>
-        <button class="btn btn-sm text-white p-0" onclick="toggleMobileSidebar()" style="font-size:20px;">
+        <button class="btn btn-sm p-0" onclick="toggleMobileSidebar()" style="font-size:20px;color:#5f4a9c;">
             <i class="fas fa-bars"></i>
         </button>
     </div>
@@ -260,7 +353,7 @@
         <div class="sidebar-header">
             <div class="d-flex align-items-center gap-3">
                 <div class="logo-icon"><i class="fas fa-shield-alt text-white"></i></div>
-                <span class="logo-text fw-bold ls-1 text-white">ADMIN CONTROL</span>
+                <span class="logo-text fw-bold ls-1" style="color:#2f2359;">ADMIN CONTROL</span>
             </div>
             <button class="btn btn-sm text-secondary p-0" onclick="toggleSidebar()"><i class="fas fa-outdent"></i></button>
         </div>
@@ -279,22 +372,11 @@
             <a href="{{ route('admin.categories.index') }}" class="menu-item {{ Request::is('admin/categories*') ? 'active' : '' }}">
                 <i class="fas fa-layer-group"></i> <span class="menu-text">Kategori</span>
             </a>
-            @endrole
-
-            @role('ketua_yayasan')
-            <a href="{{ route('dashboard') }}" class="menu-item {{ Request::is('dashboard') ? 'active' : '' }}">
-                <i class="fas fa-th-large"></i>
-                <span class="menu-text">Overview</span>
+            <a href="{{ route('admin.locations.index') }}" class="menu-item {{ Request::is('admin/locations*') ? 'active' : '' }}">
+                <i class="fas fa-map-marked-alt"></i> <span class="menu-text">Lokasi</span>
             </a>
-
-            <a href="{{ route('ketua.aspirations.index') }}" class="menu-item {{ Request::is('ketua/aspirations*') ? 'active' : '' }}">
-                <i class="fas fa-clipboard-check"></i>
-                <span class="menu-text">Persetujuan Aspirasi</span>
-            </a>
-
-            <a href="{{ route('ketua.reports.index') }}" class="menu-item {{ Request::is('ketua/reports*') ? 'active' : '' }}">
-                <i class="fas fa-chart-line"></i>
-                <span class="menu-text">Laporan Tahunan</span>
+            <a href="{{ route('admin.password-resets.index') }}" class="menu-item {{ Request::is('admin/password-resets*') ? 'active' : '' }}">
+                <i class="fas fa-key"></i> <span class="menu-text">Reset Password</span>
             </a>
             @endrole
 
@@ -311,6 +393,31 @@
 
     <main class="main-content">
         <div class="container-fluid">
+            @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+                <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            @endif
+
+            @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i> {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            @endif
+
+            @if($errors->any())
+            <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+                <ul class="mb-0 list-unstyled">
+                    @foreach($errors->all() as $error)
+                        <li><i class="fas fa-times-circle me-2"></i> {{ $error }}</li>
+                    @endforeach
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            @endif
+
             @yield('content')
         </div>
     </main>

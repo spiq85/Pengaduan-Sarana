@@ -9,6 +9,7 @@ use App\Models\Aspirations;
 use App\Models\Vote;
 use App\Models\Comment;
 use App\Services\Aspiration\ApprovalService;
+use App\Services\Comment\CommentModerationService;
 
 class AspirationInteractionController extends Controller
 {
@@ -53,11 +54,10 @@ class AspirationInteractionController extends Controller
         if ($newLevel > $currentLevel) {
             $aspiration->update([
                 'priority_level' => $sla['priority'],
-                'end_at' => $aspiration->start_at->copy()->addDays($sla['days']),
             ]);
         }
     }
-
+    
     public function storeComment(Request $request, $id)
     {
         $request->validate(['body' => 'required|string|max:500']);
@@ -65,9 +65,9 @@ class AspirationInteractionController extends Controller
         Comment::create([
             'aspiration_id' => $id,
             'student_id' => Auth::guard('student')->id(),
-            'body' => $request->input('body'),
+            'body' => CommentModerationService::censor($request->input('body')),
         ]);
 
-        return back()->with('success', 'Komentar lo udah masuk!');
+        return back();
     }
 }

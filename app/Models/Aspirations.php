@@ -15,19 +15,25 @@ class Aspirations extends Model
         'input_by',
         'id_category',
         'description',
+        'ketua_instruction',
         'location',
         'validated_by',
         'validated_at',
         'progress_status',
         'priority_level',
         'start_at',
-        'end_at'
+        'end_at',
+        'student_confirmed_done_at',
+        'deadline',
+        'progress_evidence_image',
     ];
 
     protected $casts = [
         'validated_at' => 'datetime',
         'start_at' => 'datetime',
         'end_at' => 'datetime',
+        'student_confirmed_done_at' => 'datetime',
+        'deadline' => 'datetime',
     ];
 
     public function getRouteKeyName()

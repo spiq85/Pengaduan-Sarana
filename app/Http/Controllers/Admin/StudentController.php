@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Student;
+use App\Models\PasswordResetRequest;
 
 class StudentController extends Controller
 {
@@ -75,5 +76,31 @@ class StudentController extends Controller
         $student->delete();
         
         return back()->with('success', 'Akun siswa berhasil di hapus');
+    }
+
+    public function passwordResets()
+    {
+        $request = PasswordResetRequest::with('student')
+            ->where('status', 'pending')
+            ->latest()
+            ->paginate(10);
+
+        return view('admin.students.password-reset', compact('request'));
+    }
+
+    public function resetPassword($id)
+    {
+        $resetRequest = PasswordResetRequest::findOrFail($id);
+        $student = Student::findOrFail($resetRequest->id_student);
+
+        $student->update([
+            'password' => Hash::make($student->nis),
+        ]);
+
+        $resetRequest->update([
+            'status' => 'resolved'
+        ]);
+
+        return back()->with('success',"Password {$student->username} berhasil direset ke NIS ({$student->nis})");
     }
 }

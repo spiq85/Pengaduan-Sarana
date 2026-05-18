@@ -16,7 +16,6 @@ class StatsService
                         'total_masuk' => InputAspirations::count(),
                         'status' => [
                                 'menunggu' => InputAspirations::where('submission_status', 'menunggu')->count(),
-                                'review'   => InputAspirations::where('submission_status', 'reviewed')->count(),
                                 'diterima' => InputAspirations::where('submission_status', 'diterima')->count(),
                                 'ditolak'  => InputAspirations::where('submission_status', 'ditolak')->count(),
                         ],

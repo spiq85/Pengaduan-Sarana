@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 class InputAspirations extends Model
 {
@@ -14,7 +15,14 @@ class InputAspirations extends Model
         'input_by',
         'input_at',
         'id_category',
+        'id_location',
+        'room_number',
         'submission_status',
+        'submission_mode',
+        'is_kept',
+        'kept_until',
+        'kept_note',
+        'title',
         'description',
         'location',
         'image',
@@ -25,6 +33,8 @@ class InputAspirations extends Model
 
     protected $casts = [
         'input_at' => 'datetime',
+        'kept_until' => 'datetime',
+        'is_kept' => 'boolean',
     ];
 
     public function student()
@@ -35,6 +45,11 @@ class InputAspirations extends Model
     public function category()
     {
         return $this->belongsTo(Category::class, 'id_category', 'id_category');
+    }
+
+    public function locationRef()
+    {
+        return $this->belongsTo(Location::class, 'id_location', 'id_location');
     }
 
     public function aspiration()
@@ -52,18 +67,26 @@ class InputAspirations extends Model
     {
         $query->when($filters['search'] ?? null, function ($query, $search) {
             $query->where(function ($q) use ($search) {
-                $q->where('location', 'like', '%' . $search . '%')
-                    ->orWhere('description', 'like', '%' . $search . '%');
+                $q->where('title', 'like', '%' . $search . '%')
+                    ->orWhere('location', 'like', '%' . $search . '%')
+                    ->orWhere('description', 'like', '%' . $search . '%')
+                    ->orWhere('admin_message', 'like', '%' . $search . '%');
             });
         })->when($filters['category'] ?? null, function ($query, $category) {
             $query->where('id_category', $category);
         })->when($filters['status'] ?? null, function ($query, $status) {
             $query->where('submission_status', $status);
+        })->when($filters['mode'] ?? null, function ($query, $mode) {
+            $query->where('submission_mode', $mode);
         })->when($filters['progress'] ?? null, function ($query, $progress) {
             // FILTER BARU: Nembus ke tabel aspirations
             $query->whereHas('aspiration', function ($q) use ($progress) {
                 $q->where('progress_status', $progress);
             });
+        })->when($filters['from'] ?? null, function ($query, $from) {
+            $query->whereDate('created_at', '>=', Carbon::parse($from)->toDateString());
+        })->when($filters['to'] ?? null, function ($query, $to) {
+            $query->whereDate('created_at', '<=', Carbon::parse($to)->toDateString());
         });
     }
 }

@@ -1,10 +1,11 @@
 import "./bootstrap";
 import { createApp, h } from "vue";
-import { createInertiaApp, usePage } from "@inertiajs/vue3"; // Tambah usePage
+import { createInertiaApp, usePage } from "@inertiajs/vue3";
 import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 import "../css/app.css";
-import Swal from "sweetalert2"; // Impor SweetAlert
-import { watch } from "vue"; // Impor watch
+import Swal from "sweetalert2";
+import "sweetalert2/dist/sweetalert2.min.css";
+import { watch } from "vue";
 
 createInertiaApp({
     resolve: (name) =>
@@ -20,7 +21,7 @@ createInertiaApp({
         app.mount(el);
 
         // --- GLOBAL SWEETALERT LOGIC ---
-        // Kita monitor properti 'flash' dari Inertia
+        // Monitor Flash Messages
         watch(
             () => usePage().props.flash,
             (flash) => {
@@ -31,44 +32,48 @@ createInertiaApp({
                         icon: "success",
                         timer: 2000,
                         showConfirmButton: false,
-                        background: "#1e293b",
-                        color: "#fff",
-                        iconColor: "#3b82f6",
+                        background: "#ffffff",
+                        color: "#1e293b",
+                        iconColor: "#4f46e5",
                         customClass: {
-                            popup: "rounded-[2rem] border border-slate-700 shadow-2xl",
+                            popup: "rounded-[2rem] shadow-2xl border border-slate-100",
                         },
                     });
                 }
-
                 if (flash && flash.error) {
                     Swal.fire({
-                        title: "WADUH!",
+                        title: "GAGAL!",
                         text: flash.error,
                         icon: "error",
-                        background: "#1e293b",
-                        color: "#fff",
-                        confirmButtonColor: "#e11d48",
-                        confirmButtonText: "OKE CUY",
+                        background: "#ffffff",
+                        color: "#1e293b",
+                        confirmButtonColor: "#f43f5e",
                         customClass: {
-                            popup: "rounded-[2rem] border border-slate-700 shadow-2xl",
+                            popup: "rounded-[2rem] shadow-2xl border border-slate-100",
                         },
                     });
                 }
+            },
+            { deep: true },
+        );
 
-                // Khusus untuk toggle vote atau pesan ringan
-                if (flash && flash.message) {
-                    const Toast = Swal.mixin({
-                        toast: true,
-                        position: "top-end",
-                        showConfirmButton: false,
-                        timer: 3000,
-                        timerProgressBar: true,
-                        background: "#1e293b",
-                        color: "#fff",
-                    });
-                    Toast.fire({
-                        icon: "info",
-                        title: flash.message,
+        // Monitor Validation Errors
+        watch(
+            () => usePage().props.errors,
+            (errors) => {
+                if (errors && Object.keys(errors).length > 0) {
+                    const firstError = Object.values(errors)[0];
+                    alert("DEBUG ERROR: " + firstError);
+                    Swal.fire({
+                        title: "PERIKSA KEMBALI",
+                        text: firstError,
+                        icon: "warning",
+                        background: "#ffffff",
+                        color: "#1e293b",
+                        confirmButtonColor: "#4f46e5",
+                        customClass: {
+                            popup: "rounded-[2rem] shadow-2xl border border-slate-100",
+                        },
                     });
                 }
             },
